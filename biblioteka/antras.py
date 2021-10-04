@@ -1,5 +1,3 @@
-from typing import final
-
 
 def kazkokie_veiksmai():
     print('Hello!')
