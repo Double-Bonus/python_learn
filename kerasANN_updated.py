@@ -73,14 +73,15 @@ else:
     xx, yy = np.meshgrid(stepsX, stepsY)
 
     predictions = model.predict(np.c_[xx.ravel(), yy.ravel()])
-    predictions = np.where(predictions>0.5, predictions, 0)
-    predictions = np.where(predictions<0.5, predictions, 0)
+    print(predictions)
+
+    #predictions = np.amax(predictions, 1)
+    predictions = np.argmax(predictions, axis=1) # index of which is max prediction
+
     z = predictions.reshape(xx.shape)
 
     plt.contourf(xx, yy, z, cmap='Paired',alpha = 0.5)
     
- 
- 
     print('prediction: {}'.format(predictions))
  
 plt.plot(data1[:,0],data1[:,1],'ro')
