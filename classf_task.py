@@ -1,7 +1,7 @@
 # Classify images to 10 classes using MLP and CNN, and compare results
 #
 # With MLP managed to achieve ~60 validation accuracy
-# With CNN *only* ~40 validation accuracy
+# With CNN ~75 validation accuracy
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,12 +11,12 @@ from keras.layers import Dense, Conv2D, MaxPooling2D,  Flatten
 from keras.models import Sequential
 from keras.layers.core import Dropout
 
-(x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
+# to turn off GPU
+# import os
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-assert x_train.shape == (50000, 32, 32, 3)
-assert x_test.shape == (10000, 32, 32, 3)
-assert y_train.shape == (50000, 1)
-assert y_test.shape == (10000, 1)
+
+(x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
 
 print(x_train.shape)
 
@@ -35,23 +35,16 @@ number_of_samples = 1123
 img = x_train[number_of_samples]
 
 number_of_outputs = 10  # labeled over 10 categories
-train_labels = keras.utils.to_categorical(y_train, num_classes=number_of_outputs)
-test_labels = keras.utils.to_categorical(y_test, num_classes=number_of_outputs)
-
-
-# print(train_labels)
-# plt.imshow(img)
-# plt.show()
+#train_labels = keras.utils.to_categorical(y_train, num_classes=number_of_outputs)
+#test_labels = keras.utils.to_categorical(y_test, num_classes=number_of_outputs)
 
 
 # 1 - MLP training
 # 2 - CNN training
-Mode = 1
+Mode = 2
 
     
 if Mode == 2:
-    x_train_c = x_train.reshape(50000, 32, 32, 3)
-    x_test_c  =  x_test.reshape(10000, 32, 32, 3)
         
     model = Sequential()
     model.add(Conv2D(filters=128, kernel_size=(3,3), activation='relu', input_shape = (32,32,3)))
@@ -59,16 +52,17 @@ if Mode == 2:
     model.add(MaxPooling2D((2, 2)))
     model.add(Conv2D(filters=128, kernel_size=(3,3), activation='relu' ))
     model.add(MaxPooling2D((2, 2)))
-    model.add(Conv2D(filters=128, kernel_size=(3,3), activation='relu' ))
-    model.add(Conv2D(filters=32, kernel_size=(3,3), activation='relu' ))
-    model.add(MaxPooling2D((2, 2)))
+    # model.add(Conv2D(filters=128, kernel_size=(3,3), activation='relu' ))
+    # model.add(Conv2D(filters=32, kernel_size=(3,3), activation='relu' ))
+    # model.add(MaxPooling2D((2, 2)))
     model.add(Flatten())
-    model.add(Dense(units=number_of_outputs, activation='relu'))
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    model.add(Dense(units=number_of_outputs))
+    model.compile(optimizer='adam', loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True), metrics=['accuracy'])
+    model.summary()
     
     
     # mokymas
-    hist = model.fit(x_train, train_labels, batch_size=128, epochs=40, verbose=1, validation_data=(x_test, test_labels))
+    hist = model.fit(x_train, y_train, batch_size=128, epochs=40, verbose=1, validation_data=(x_test, y_test))
     
     model.save('uzd_cnn.h5')
     
@@ -90,7 +84,9 @@ if Mode == 2:
     plt.show()
     
 elif Mode == 1:
-    
+    train_labels = keras.utils.to_categorical(y_train, num_classes=number_of_outputs)
+    test_labels = keras.utils.to_categorical(y_test, num_classes=number_of_outputs)
+
     x_train = x_train.reshape(50000, 3072)
     x_test  =  x_test.reshape(10000, 3072)
     
