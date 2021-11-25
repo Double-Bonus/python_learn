@@ -149,7 +149,7 @@ elif Mode == 3:
     
     number_of_samples = 1500
     img = np.reshape(x_test[number_of_samples, :], (28,28))
-    xnew
+    # xnew
     
     xnew = np.array([x_test[number_of_samples, :]])
     # predicted_class = model.predict_classes(xnew)
