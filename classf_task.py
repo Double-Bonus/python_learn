@@ -15,37 +15,7 @@ from keras.layers.core import Dropout
 # import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-
-(x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
-
-print(x_train.shape)
-
-
-x_train = x_train.astype('float32')
-x_test = x_test.astype('float32')
-x_train /= 255.0
-x_test /= 255.0
-
-print(x_train.shape)
-print(np.min(x_train), np.max(x_train))
-print(y_train)
-
-# This is a dataset of 50,000 32x32 color training images and 10,000 test images,
-number_of_samples = 1123
-img = x_train[number_of_samples]
-
-number_of_outputs = 10  # labeled over 10 categories
-#train_labels = keras.utils.to_categorical(y_train, num_classes=number_of_outputs)
-#test_labels = keras.utils.to_categorical(y_test, num_classes=number_of_outputs)
-
-
-# 1 - MLP training
-# 2 - CNN training
-Mode = 2
-
-    
-if Mode == 2:
-        
+def train_CNN():
     model = Sequential()
     model.add(Conv2D(filters=128, kernel_size=(3,3), activation='relu', input_shape = (32,32,3)))
     model.add(Conv2D(filters=64, kernel_size=(3,3), activation='relu' ))
@@ -83,7 +53,7 @@ if Mode == 2:
     plt.grid(b=True)
     plt.show()
     
-elif Mode == 1:
+def train_MLP():
     train_labels = keras.utils.to_categorical(y_train, num_classes=number_of_outputs)
     test_labels = keras.utils.to_categorical(y_test, num_classes=number_of_outputs)
 
@@ -125,6 +95,39 @@ elif Mode == 1:
     plt.xlabel('epoch')
     plt.grid(b=True)
     plt.show()
+
+
+# 1 - MLP training
+# 2 - CNN training
+Mode = 2
+
+(x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
+
+print(x_train.shape)
+
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
+x_train /= 255.0
+x_test /= 255.0
+
+print(x_train.shape)
+print(np.min(x_train), np.max(x_train))
+print(y_train)
+
+# This is a dataset of 50,000 32x32 color training images and 10,000 test images,
+number_of_samples = 1123
+img = x_train[number_of_samples]
+
+number_of_outputs = 10  # labeled over 10 categories
+#train_labels = keras.utils.to_categorical(y_train, num_classes=number_of_outputs)
+#test_labels = keras.utils.to_categorical(y_test, num_classes=number_of_outputs)
+
+    
+if Mode == 1:
+    train_MLP()
+elif Mode == 2:
+    train_CNN()
+
         
 
 print("Done")
