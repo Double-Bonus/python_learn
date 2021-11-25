@@ -15,7 +15,7 @@ from keras.layers.core import Dropout
 # import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-def train_CNN():
+def train_CNN(x_train, y_train, x_test, y_test):
     model = Sequential()
     model.add(Conv2D(filters=128, kernel_size=(3,3), activation='relu', input_shape = (32,32,3)))
     model.add(Conv2D(filters=64, kernel_size=(3,3), activation='relu' ))
@@ -53,7 +53,7 @@ def train_CNN():
     plt.grid(b=True)
     plt.show()
     
-def train_MLP():
+def train_MLP(x_train, y_train, x_test, y_test):
     train_labels = keras.utils.to_categorical(y_train, num_classes=number_of_outputs)
     test_labels = keras.utils.to_categorical(y_test, num_classes=number_of_outputs)
 
@@ -97,36 +97,42 @@ def train_MLP():
     plt.show()
 
 
+def load_example_data():
+    (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
+    print(x_train.shape)
+
+    x_train = x_train.astype('float32')
+    x_test = x_test.astype('float32')
+    x_train /= 255.0
+    x_test /= 255.0
+    return (x_train, y_train), (x_test, y_test)
+
+def show_data():
+    print(x_train.shape)
+    print(np.min(x_train), np.max(x_train))
+    print(y_train)
+
+    # This is a dataset of 50,000 32x32 color training images and 10,000 test images,
+    number_of_samples = 1123 # random sample
+    img = x_train[number_of_samples]
+    plt.imshow(img)
+    plt.show()
+    
+
+
 # 1 - MLP training
 # 2 - CNN training
 Mode = 2
 
-(x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
-
-print(x_train.shape)
-
-x_train = x_train.astype('float32')
-x_test = x_test.astype('float32')
-x_train /= 255.0
-x_test /= 255.0
-
-print(x_train.shape)
-print(np.min(x_train), np.max(x_train))
-print(y_train)
-
-# This is a dataset of 50,000 32x32 color training images and 10,000 test images,
-number_of_samples = 1123
-img = x_train[number_of_samples]
-
+(x_train, y_train), (x_test, y_test) = load_example_data()
 number_of_outputs = 10  # labeled over 10 categories
-#train_labels = keras.utils.to_categorical(y_train, num_classes=number_of_outputs)
-#test_labels = keras.utils.to_categorical(y_test, num_classes=number_of_outputs)
 
+# show_data()
     
 if Mode == 1:
-    train_MLP()
+    train_MLP(x_train, y_train, x_test, y_test)
 elif Mode == 2:
-    train_CNN()
+    train_CNN(x_train, y_train, x_test, y_test)
 
         
 
