@@ -20,6 +20,7 @@ from tensorflow import keras # ???
 
 from keras.models import Model, load_model
 from keras.layers import Input
+from keras.metrics import Metric
 from keras.layers.core import Dropout, Lambda
 from keras.layers.convolutional import Conv2D, Conv2DTranspose
 from keras.layers.pooling import MaxPooling2D
@@ -30,18 +31,27 @@ from keras import backend as K
 import tensorflow as tf
 from keras.preprocessing import image
 
+# tf.config.run_functions_eagerly(True)
+
 
 #-------------Function that computes intersection unit ------------------
+@tf.function
 def mean_iou(y_true, y_pred):
     prec = []
     for t in np.arange(0.5, 1.0, 0.05):
-        # y_pred_ = tf.to_int32(y_pred > t)
         y_pred_ = tf.cast(y_pred > t, tf.int32)
-        # tf.cast(my_tensor, tf.int32)
-        score, up_opt = tf.metrics.mean_iou(y_true, y_pred_, 2)
+        score, up_opt = tf.compat.v1.metrics.mean_iou(y_true, y_pred_, 2)
+        
+        print("Labas     + : ")
+        print(tf.inside_function())
+
+        sess = tf.compat.v1.keras.backend.get_session()
+        # sess.run(tf.local_variables_initializer())
+
+        
         K.get_session().run(tf.local_variables_initializer())
         with tf.control_dependencies([up_opt]):
-            score = tf.identity(score)
+            score = tf.identity(score) # reikia tensor cia!!!!
         prec.append(score)
     return K.mean(K.stack(prec), axis=0)
 
@@ -101,6 +111,9 @@ def get_model(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS):
 
     model = Model(inputs=[inputs], outputs=[outputs])
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[mean_iou])
+    # model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    
+    # model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[Lambda(mean_iou)])
     model.summary()
     return model
 
@@ -127,17 +140,18 @@ if trainingflag == True:
 
     print('Getting and resizing train images and masks ... ')
     sys.stdout.flush()
-    for i in range(0,len(train_ids)):
+    # for i in range(0,len(train_ids)):
+    for i in range(0, 1): # test
         img_name = os.path.basename(os.path.normpath(train_ids[i]))
-        path = train_ids[i] + 'images\\' + img_name + '.png'
+        path = train_ids[i] + '\\images\\' + img_name + '.png'
         img = imread(path)[:,:,:IMG_CHANNELS]
         img = resize(img, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
         X_train[i] = img
 
         mask = np.zeros((IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.bool)
-        listofmask = fnmatch.filter(os.listdir(train_ids[i] + 'masks\\'), '*.png')
+        listofmask = fnmatch.filter(os.listdir(train_ids[i] + '\\masks\\'), '*.png')
         for j in range(0,len(listofmask)):
-            mask_ = imread(train_ids[i] + 'masks/' + listofmask[j])
+            mask_ = imread(train_ids[i] + '\\masks\\' + listofmask[j])
             mask_ = np.expand_dims(resize(mask_, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True), axis=-1)
             mask = np.maximum(mask, mask_)
         Y_train[i] = mask
@@ -149,7 +163,7 @@ print('Getting and resizing test images ... ')
 sys.stdout.flush()
 for i in range(0,len(test_ids)):
     img_name = os.path.basename(os.path.normpath(train_ids[i]))
-    path = train_ids[i] + 'images\\' + img_name + '.png'
+    path = train_ids[i] + '\\images\\' + img_name + '.png'
     img = imread(path)[:,:,:IMG_CHANNELS]
     sizes_test.append([img.shape[0], img.shape[1]])
     img = resize(img, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
