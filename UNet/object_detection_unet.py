@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
+from tensorflow.keras import metrics
 
 from tqdm import tqdm
 from itertools import chain
@@ -31,9 +32,11 @@ from keras import backend as K
 import tensorflow as tf
 from keras.preprocessing import image
 
-# tf.config.run_functions_eagerly(True)
 
-
+""" THIS FUNCTION IS BS!!!
+Update: This implementation is most definitely not correct due to the very large discrepancy between the results reported here and the LB results. 
+It also seems to just increase over time no matter what when you train ... 
+"""
 #-------------Function that computes intersection unit ------------------
 @tf.function
 def mean_iou(y_true, y_pred):
@@ -41,15 +44,20 @@ def mean_iou(y_true, y_pred):
     for t in np.arange(0.5, 1.0, 0.05):
         y_pred_ = tf.cast(y_pred > t, tf.int32)
         score, up_opt = tf.compat.v1.metrics.mean_iou(y_true, y_pred_, 2)
-        
-        print("Labas     + : ")
-        print(tf.inside_function())
 
-        sess = tf.compat.v1.keras.backend.get_session()
+        metrics.MeanIoU(num_classes=2)
+        # score = tf.keras.metrics.MeanIoU(num_classes=2)
+        # score.update_state(y_true, y_pred_)
+        # score.result().numpy()
+        
+        # print("Labas     + : ")
+        # print(tf.inside_function())
+
+        # sess = tf.compat.v1.keras.backend.get_session()
         # sess.run(tf.local_variables_initializer())
 
         
-        K.get_session().run(tf.local_variables_initializer())
+        # K.get_session().run(tf.local_variables_initializer())
         with tf.control_dependencies([up_opt]):
             score = tf.identity(score) # reikia tensor cia!!!!
         prec.append(score)
@@ -110,15 +118,16 @@ def get_model(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS):
     outputs = Conv2D(1, (1, 1), activation='sigmoid') (c9)
 
     model = Model(inputs=[inputs], outputs=[outputs])
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[mean_iou])
+    # model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[mean_iou])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[tf.keras.metrics.MeanIoU(num_classes=2)])
     # model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     
-    # model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[Lambda(mean_iou)])
+    #model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[Lambda(mean_iou)])
     model.summary()
     return model
 
 
-trainingflag = True
+trainingflag = False
 
 BATCH_SIZE = 10 # the higher the better
 IMG_WIDTH = 128 # for faster computing 
@@ -140,8 +149,8 @@ if trainingflag == True:
 
     print('Getting and resizing train images and masks ... ')
     sys.stdout.flush()
-    # for i in range(0,len(train_ids)):
-    for i in range(0, 1): # test
+    # for i in range(0, 1): # test
+    for i in range(0,len(train_ids)):
         img_name = os.path.basename(os.path.normpath(train_ids[i]))
         path = train_ids[i] + '\\images\\' + img_name + '.png'
         img = imread(path)[:,:,:IMG_CHANNELS]
@@ -150,25 +159,27 @@ if trainingflag == True:
 
         mask = np.zeros((IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.bool)
         listofmask = fnmatch.filter(os.listdir(train_ids[i] + '\\masks\\'), '*.png')
-        for j in range(0,len(listofmask)):
+        for j in range(0, len(listofmask)):
             mask_ = imread(train_ids[i] + '\\masks\\' + listofmask[j])
             mask_ = np.expand_dims(resize(mask_, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True), axis=-1)
             mask = np.maximum(mask, mask_)
         Y_train[i] = mask
-        print("i:{}/{} training data".format(i,len(train_ids)))
+        if i % 10 == 0:
+            print("i:{}/{} training data".format(i,len(train_ids)))
 
 X_test = np.zeros((len(test_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
 sizes_test = []
 print('Getting and resizing test images ... ')
 sys.stdout.flush()
 for i in range(0,len(test_ids)):
-    img_name = os.path.basename(os.path.normpath(train_ids[i]))
-    path = train_ids[i] + '\\images\\' + img_name + '.png'
+    img_name = os.path.basename(os.path.normpath(test_ids[i]))
+    path = test_ids[i] + '\\images\\' + img_name + '.png'
     img = imread(path)[:,:,:IMG_CHANNELS]
     sizes_test.append([img.shape[0], img.shape[1]])
     img = resize(img, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
     X_test[i] = img
-    print("i:{}/{} testing data".format(i,len(train_ids)))
+    if i % 10 == 0:
+        print("i:{}/{} testing data".format(i,len(test_ids)))
 
 print('Done!')
 
@@ -208,14 +219,14 @@ if trainingflag == True:
     #----------- Create Unet model ------------------------
 
     earlystopper = EarlyStopping(patience=3, verbose=1)
-    checkpointer = ModelCheckpoint('..\\models\\model-nucleus.h5', verbose=1, save_best_only=True)
+    checkpointer = ModelCheckpoint('\\models\\model-nucleus.h5', verbose=1, save_best_only=True)
     results = model.fit(train_generator, validation_data=val_generator, validation_steps=10, steps_per_epoch=250,
                                 epochs=3, callbacks=[earlystopper, checkpointer], verbose=1)
     
     
 else:
 
-    model = load_model('./models/model-nucleus.h5', custom_objects={'mean_iou': mean_iou})
+    model = load_model('\\models\\model-nucleus.h5', custom_objects={'mean_iou': mean_iou})
     preds_test = model.predict(X_test, verbose=1)
     # Threshold predictions
     preds_test_t = (preds_test > 0.5).astype(np.uint8)
